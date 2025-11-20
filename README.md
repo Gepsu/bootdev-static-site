@@ -1,4 +1,5 @@
 Run `./main.sh` to generate a static site from markdown contents found in `content/`
+Run `./build.sh` to generate a github-ready static site from markdown contents found in `content/`
 Run `./test.sh` to run unit tests
 
 **Lessons learned**

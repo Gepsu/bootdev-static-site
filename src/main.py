@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import shutil
@@ -5,15 +6,15 @@ import shutil
 from src.markdown_blocks import markdown_to_html
 
 
-def main() -> None:
-    clean_public_directory()
-    copy_contents("./static", "./public")
-    generate_pages("./content", "./public", "./template.html")
+def main(basepath: str, output: str) -> None:
+    clean_output_directory(output)
+    copy_contents("./static", output)
+    generate_pages("./content", output, "./template.html", basepath)
 
 
-def clean_public_directory() -> None:
-    if os.path.exists("./public"):
-        shutil.rmtree("./public")
+def clean_output_directory(output: str) -> None:
+    if os.path.exists(output):
+        shutil.rmtree(output)
 
 
 def copy_contents(src: str, dest: str) -> None:
@@ -25,7 +26,7 @@ def copy_contents(src: str, dest: str) -> None:
         shutil.copy(src_file, dest_file)
 
 
-def generate_pages(src: str, dest: str, template: str) -> None:
+def generate_pages(src: str, dest: str, template: str, basepath: str) -> None:
     pages = get_contents_r(src)
     for page in pages:
         if not page.endswith(".md"):
@@ -33,7 +34,7 @@ def generate_pages(src: str, dest: str, template: str) -> None:
         src_page = os.path.join(src, page)
         dest_page = os.path.join(dest, page.replace(".md", ".html"))
         os.makedirs(os.path.dirname(dest_page), exist_ok=True)
-        generate_page(src_page, dest_page, template)
+        generate_page(src_page, dest_page, template, basepath)
 
 
 def get_contents_r(dir: str, root: str = "") -> list[str]:
@@ -59,7 +60,7 @@ def extract_title(markdown: str) -> str:
     return match[1]
 
 
-def generate_page(src: str, dest: str, template: str) -> None:
+def generate_page(src: str, dest: str, template: str, basepath: str) -> None:
     print(f"Generating page from {src} to {dest} using {template}")
 
     with open(src) as file:
@@ -71,8 +72,11 @@ def generate_page(src: str, dest: str, template: str) -> None:
     markdown = markdown_to_html(source_contents)
     title = extract_title(source_contents)
 
-    html = template_contents.replace("{{ Title }}", title).replace(
-        "{{ Content }}", markdown.to_html()
+    html = (
+        template_contents.replace("{{ Title }}", title)
+        .replace("{{ Content }}", markdown.to_html())
+        .replace('href="/', f'href="{basepath}')
+        .replace('src="/', f'src="{basepath}')
     )
 
     with open(dest, "w") as file:
@@ -81,4 +85,8 @@ def generate_page(src: str, dest: str, template: str) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--basepath", default="/")
+    parser.add_argument("--output", default="./public")
+    args = parser.parse_args()
+    main(args.basepath, args.output)
